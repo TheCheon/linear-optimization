@@ -1,3 +1,5 @@
 numpy
 matplotlib
 pulp
+pyinstaller
+python3-tk
