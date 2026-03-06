@@ -13,8 +13,8 @@ Requirements
 Quickstart
 ----------
 1. Create and activate a venv:
-    - python3 -m venv .venv
-    - source .venv/bin/activate
+    - `python3 -m venv .venv`
+    - `source .venv/bin/activate`
 2. Install dependencies:
     - pip install -r requirements.txt
 3. Run an example:
