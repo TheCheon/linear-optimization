@@ -282,12 +282,19 @@ class LinearOptimizerApp(tk.Tk):
             self.result_text.config(state=tk.NORMAL)
             self.result_text.delete("1.0", tk.END)
             self.result_text.insert(tk.END, f"Status: {result['status']}\n\n")
-            for n, v in result["variables"].items():
-                val_str = f"{v:.6f}" if v is not None else "—"
-                self.result_text.insert(tk.END, f"  {n} = {val_str}\n")
-            obj = result["objective"]
-            obj_str = f"{obj:.6f}" if obj is not None else "—"
-            self.result_text.insert(tk.END, f"\nObjective = {obj_str}")
+            if result["status"] == "Optimal":
+                for n, v in result["variables"].items():
+                    val_str = f"{v:.6f}" if v is not None else "—"
+                    self.result_text.insert(tk.END, f"  {n} = {val_str}\n")
+                obj = result["objective"]
+                obj_str = f"{obj:.6f}" if obj is not None else "—"
+                self.result_text.insert(tk.END, f"\nObjective = {obj_str}")
+            else:
+                hint = {
+                    "Infeasible": "The constraints are contradictory — no point satisfies all of them.",
+                    "Unbounded": "The objective can grow infinitely — add a bounding constraint.",
+                }.get(result["status"], "The solver could not find a solution.")
+                self.result_text.insert(tk.END, hint)
             self.result_text.config(state=tk.DISABLED)
 
             self.plot_frame.render(result, variables, constraints)

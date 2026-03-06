@@ -23,6 +23,18 @@ class PlotFrame(tk.Frame):
     # ------------------------------------------------------------------
     def render(self, result: dict, variables: list[dict], constraints: list[dict]):
         self.fig.clear()
+        if result.get("status") != "Optimal":
+            ax = self.fig.add_subplot(111)
+            ax.axis("off")
+            ax.text(
+                0.5, 0.5,
+                f"No solution\nStatus: {result.get('status', 'Unknown')}",
+                ha="center", va="center", fontsize=16, color="#c0392b",
+                transform=ax.transAxes,
+            )
+            self.fig.tight_layout()
+            self.canvas.draw()
+            return
         var_names = list(result["variables"])
         if len(var_names) == 2:
             self._render_2d(result, variables, constraints, var_names)
@@ -42,6 +54,9 @@ class PlotFrame(tk.Frame):
 
         xv = result["variables"].get(xn) or 0.0
         yv = result["variables"].get(yn) or 0.0
+        # guard against None values (infeasible / unbounded slipping through)
+        if xv is None: xv = 0.0
+        if yv is None: yv = 0.0
         x_lo, x_hi, y_lo, y_hi = self._compute_bounds_2d(
             constraints, xn, yn, xv, yv, x_nn, y_nn
         )
