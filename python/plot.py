@@ -27,7 +27,7 @@ class PlotFrame(tk.Frame):
         if len(var_names) == 2:
             self._render_2d(result, variables, constraints, var_names)
         else:
-            self._render_bar(result, variables)
+            self._render_bar(result, variables, constraints)
         self.fig.tight_layout()
         self.canvas.draw()
 
@@ -112,19 +112,73 @@ class PlotFrame(tk.Frame):
         ax.set_title(f"{sense_str}  {obj_x}·{xn} + {obj_y}·{yn}", fontsize=12)
         ax.legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-    # ------------------------------------------------------------------  n-variable bar chart
-    def _render_bar(self, result, variables):
-        ax = self.fig.add_subplot(111)
-        names = list(result["variables"])
-        vals = [result["variables"][n] or 0.0 for n in names]
-        bars = ax.bar(names, vals, color=_PALETTE[: len(names)], edgecolor="k")
-        ax.bar_label(bars, fmt="%.4f", padding=3)
-        ax.set_ylabel("Variable value")
-        ax.set_title(
-            f"{result.get('sense','maximize').capitalize()}  —  "
-            f"objective = {result['objective']:.4f}\n"
-            "(2-D plot available only for 2-variable problems)",
-            fontsize=10,
+    # ------------------------------------------------------------------  n-variable heatmap (pairs)
+    def _render_bar(self, result, variables, constraints):
+        """For 3+ variables: show one heatmap subplot per adjacent pair of variables."""
+        var_names = list(result["variables"])
+        n = len(var_names)
+        # build pairs: (x0,x1), (x1,x2), ...
+        pairs = [(var_names[i], var_names[i + 1]) for i in range(n - 1)]
+        ncols = min(len(pairs), 2)
+        nrows = (len(pairs) + ncols - 1) // ncols
+        self.fig.clear()
+        axes = self.fig.subplots(nrows, ncols, squeeze=False)
+        vmap = {v["name"]: v for v in variables}
+
+        for idx, (xn, yn) in enumerate(pairs):
+            ax = axes[idx // ncols][idx % ncols]
+            obj_x = vmap[xn]["obj_coeff"]
+            obj_y = vmap[yn]["obj_coeff"]
+            x_nn = vmap[xn].get("non_negative", True)
+            y_nn = vmap[yn].get("non_negative", True)
+            xv = result["variables"].get(xn) or 0.0
+            yv = result["variables"].get(yn) or 0.0
+
+            x_lo, x_hi, y_lo, y_hi = self._compute_bounds_2d(
+                constraints, xn, yn, xv, yv, x_nn, y_nn
+            )
+            xx = np.linspace(x_lo, x_hi, 300)
+            yy = np.linspace(y_lo, y_hi, 300)
+            X, Y = np.meshgrid(xx, yy)
+            Z = obj_x * X + obj_y * Y
+
+            mask = np.zeros(X.shape, dtype=bool)
+            if x_nn:
+                mask |= X < 0
+            if y_nn:
+                mask |= Y < 0
+            for c in constraints:
+                cx = c["coeffs"].get(xn, 0.0)
+                cy = c["coeffs"].get(yn, 0.0)
+                expr = cx * X + cy * Y
+                op = c["op"]
+                if op == "<=":
+                    mask |= expr > c["rhs"] + 1e-9
+                elif op == ">=":
+                    mask |= expr < c["rhs"] - 1e-9
+                else:
+                    mask |= np.abs(expr - c["rhs"]) > 1e-6
+
+            Zm = np.ma.array(Z, mask=mask)
+            pcm = ax.pcolormesh(X, Y, Zm, cmap="Reds", shading="auto")
+            self.fig.colorbar(pcm, ax=ax, label="Objective")
+            ax.scatter([xv], [yv], c="gold", s=150, marker="*", edgecolors="k",
+                       zorder=6, label=f"opt ({xv:.2f},{yv:.2f})")
+            ax.set_xlabel(xn); ax.set_ylabel(yn)
+            ax.set_aspect("equal", adjustable="box")
+            ax.legend(fontsize=7)
+
+        # hide unused subplots
+        for idx in range(len(pairs), nrows * ncols):
+            axes[idx // ncols][idx % ncols].set_visible(False)
+
+        sense_str = result.get("sense", "maximize").capitalize()
+        var_vals = ", ".join(
+            f"{v['name']}={result['variables'][v['name']]:.3f}" for v in variables
+        )
+        self.fig.suptitle(
+            f"{sense_str}  —  objective = {result['objective']:.4f}  ({var_vals})",
+            fontsize=9,
         )
 
     # ------------------------------------------------------------------

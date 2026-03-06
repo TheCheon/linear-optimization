@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ln-opti-lib.py — math backend for the linear optimizer UI.
+solver.py — math backend for the linear optimizer UI.
 
 Public API
 ----------
@@ -55,7 +55,6 @@ def solve(variables: list[dict], constraints: list[dict], sense: str = "maximize
 # Demo — runs only when this file is executed directly
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    # Basic PuLP showcase: maximize 3x + 2y s.t. x + y <= 4, x <= 2, x,y >= 0
     result = solve(
         variables=[
             {"name": "x", "obj_coeff": 3, "non_negative": True},

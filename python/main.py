@@ -9,24 +9,23 @@ Architecture
   plot.py          — PlotFrame (matplotlib embedded in Tkinter)
 """
 
-import importlib.util
+import sys
 import pathlib
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-import plot as plot_module
+# Determine source directory — works both in dev and PyInstaller frozen mode.
+# When frozen, PyInstaller extracts files to sys._MEIPASS; otherwise use __file__'s dir.
+if getattr(sys, "frozen", False):
+    _HERE = pathlib.Path(sys._MEIPASS)
+else:
+    _HERE = pathlib.Path(__file__).parent
 
-# --------------------------------------------------------------------------
-# Load math.py via importlib (hyphens prevent normal import syntax)
-# --------------------------------------------------------------------------
-def _load_math_lib():
-    path = pathlib.Path(__file__).parent / "math.py"
-    spec = importlib.util.spec_from_file_location("math", path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
-lib = _load_math_lib()
+import solver as lib      # solver.py — LP math backend
+import plot as plot_module  # plot.py — embedded matplotlib UI
 
 
 # ==========================================================================
