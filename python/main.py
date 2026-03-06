@@ -5,7 +5,7 @@ main.py — Tkinter UI for interactive linear optimization.
 Architecture
 ------------
   main.py          — UI + orchestration
-  ln-opti-lib.py   — math (solve via PuLP)
+  math.py           — math (solve via PuLP)
   plot.py          — PlotFrame (matplotlib embedded in Tkinter)
 """
 
@@ -17,11 +17,11 @@ from tkinter import messagebox, ttk
 import plot as plot_module
 
 # --------------------------------------------------------------------------
-# Load ln-opti-lib.py via importlib (hyphens prevent normal import syntax)
+# Load math.py via importlib (hyphens prevent normal import syntax)
 # --------------------------------------------------------------------------
 def _load_math_lib():
-    path = pathlib.Path(__file__).parent / "ln-opti-lib.py"
-    spec = importlib.util.spec_from_file_location("ln_opti_lib", path)
+    path = pathlib.Path(__file__).parent / "math.py"
+    spec = importlib.util.spec_from_file_location("math", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -133,7 +133,7 @@ class LinearOptimizerApp(tk.Tk):
         self.constraint_rows: list[ConstraintRow] = []
 
         self._build_ui()
-        # Load demo matching ln-opti-lib.py default: max 3x+2y s.t. x+y<=4, x<=2
+        # Load demo matching math.py default: max 3x+2y s.t. x+y<=4, x<=2
         self._add_variable("x", 3)
         self._add_variable("y", 2)
         self._add_constraint({"x": 1, "y": 1}, "<=", 4)
