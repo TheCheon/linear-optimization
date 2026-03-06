@@ -11,7 +11,20 @@ solve(variables, constraints, sense) -> dict
     returns     : {"status": str, "variables": {name: float}, "objective": float, "sense": str}
 """
 
+import os
+import pathlib
+import stat
+import sys
+
 import pulp as pl
+
+# When running from a PyInstaller bundle the CBC binary is extracted into a
+# temp directory but the execute bit is not preserved on Linux/macOS.
+# Fix permissions before PuLP tries to call the solver.
+if getattr(sys, "frozen", False):
+    _meipass = pathlib.Path(sys._MEIPASS)
+    for _cbc in _meipass.rglob("cbc"):
+        _cbc.chmod(_cbc.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def solve(variables: list[dict], constraints: list[dict], sense: str = "maximize") -> dict:
