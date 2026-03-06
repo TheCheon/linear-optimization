@@ -9,9 +9,32 @@ if not exist ".venv\" (
 
   python --version >nul 2>&1
   if ERRORLEVEL 1 (
-    echo Error: Python not found. Install Python 3 from https://python.org and retry.
-    pause
-    exit /b 1
+    echo Python not found. Attempting automatic install...
+
+    where winget >nul 2>&1
+    if ERRORLEVEL 1 (
+      echo winget not found. Attempting PowerShell download+install (may require admin)...
+      powershell -Command "Try { $url = 'https://www.python.org/ftp/python/3.12.2/python-3.12.2-amd64.exe'; $out = [IO.Path]::Combine($env:TEMP,'python-installer.exe'); Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing; Start-Process -FilePath $out -ArgumentList '/quiet','InstallAllUsers=1','PrependPath=1' -Wait; exit 0 } Catch { exit 1 }"
+      if ERRORLEVEL 1 (
+        echo Automatic install failed. Opening browser for manual download...
+        start https://www.python.org/downloads/windows/
+      )
+    ) else (
+      echo Installing Python via winget...
+      winget install --id Python.Python.3 -e --silent
+      if ERRORLEVEL 1 (
+        echo winget install failed. Opening browser for manual download...
+        start https://www.python.org/downloads/windows/
+      )
+    )
+
+    REM Re-check python after attempted install
+    python --version >nul 2>&1
+    if ERRORLEVEL 1 (
+      echo Python is still not installed. Please install Python manually and re-run this script.
+      pause
+      exit /b 1
+    )
   )
 
   echo Creating virtualenv...
